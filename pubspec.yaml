@@ -1,0 +1,37 @@
+name: fingerprint
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Core packages for the app
+  local_auth: ^2.2.0
+  encrypt: ^5.0.3
+  google_fonts: ^6.1.0
+  shared_preferences: ^2.2.3
+  intl: ^0.19.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  # Simge oluşturucu paketi ekledik
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+# Simge Ayarları
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21

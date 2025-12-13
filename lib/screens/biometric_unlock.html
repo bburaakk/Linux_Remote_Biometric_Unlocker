@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Biometric Unlock</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#101622",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1b1f27",
+                        "text-secondary-light": "#64748b",
+                        "text-secondary-dark": "#9ca6ba",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        /* Pulse animation for the unlock button */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+        .animate-pulse-ring::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid #0d59f2;
+            animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            z-index: -1;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-white antialiased selection:bg-primary/30">
+<div class="relative flex h-auto min-h-screen w-full flex-col overflow-x-hidden">
+    <!-- TopAppBar -->
+    <div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div class="flex items-center justify-center w-8 h-8 rounded bg-primary/10 text-primary">
+                <span class="material-symbols-outlined" style="font-size: 20px;">lock_open</span>
+            </div>
+            <h2 class="text-slate-900 dark:text-white text-xl font-bold leading-tight tracking-[-0.015em]">Biometric Unlock</h2>
+        </div>
+        <div class="flex w-12 items-center justify-end">
+            <button class="flex cursor-pointer items-center justify-center overflow-hidden rounded-full h-10 w-10 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-slate-900 dark:text-white">
+                <span class="material-symbols-outlined" style="font-size: 24px;">settings</span>
+            </button>
+        </div>
+    </div>
+    <!-- Scrollable Content -->
+    <div class="flex-1 flex flex-col p-4 gap-6">
+        <!-- Card: Connected Device Status -->
+        <div class="flex items-stretch justify-between gap-4 rounded-xl bg-surface-light dark:bg-surface-dark p-4 shadow-sm border border-slate-200 dark:border-slate-800">
+            <div class="flex flex-col justify-center gap-2 flex-[2_2_0px]">
+                <div class="flex items-center gap-2 mb-1">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+</span>
+                    <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs font-medium uppercase tracking-wider">Connected</p>
+                </div>
+                <p class="text-slate-900 dark:text-white text-lg font-bold leading-tight">Ubuntu-Desktop-01</p>
+                <p class="text-text-secondary-light dark:text-text-secondary-dark text-sm font-normal leading-normal">IP: 192.168.1.42 • Secure Shell</p>
+            </div>
+            <div class="w-24 bg-center bg-no-repeat bg-cover rounded-lg flex-none shadow-inner bg-slate-100 dark:bg-slate-800" data-alt="Abstract server rack illustration with blue neon lighting" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCtTW8o4nx7LimJmn587xHePJWQvMIyHeEJ3-2APuSOAj_xWZG0NPdY9xJ-HSx03HFZbg6R0vXuR2OKCEZKk48hf0UI1W7zgcSw_dxgZO_6dmRmeNKm2arHw92PgkvwblQQ82EkSmFDt5YsKYGlZXiCa6DnYRWTlzk5w3dr5jXLEqqzd6kH_K4Je4Tl9v636dIdfi1yX-buQG2UgZalPqz-hXQi3onoquVAgH_TGUhY_f0VH-uZejgLosvtsHhTAWiOM9jMJK3hj0Z9");'>
+            </div>
+        </div>
+        <!-- Hero Section: Main Unlock Action -->
+        <div class="flex-1 flex flex-col items-center justify-center min-h-[300px] py-8">
+            <div class="relative group cursor-pointer">
+                <!-- Ripple/Pulse Effect Container -->
+                <div class="absolute inset-0 rounded-full animate-pulse-ring scale-125"></div>
+                <div class="absolute inset-0 rounded-full bg-primary/20 blur-xl"></div>
+                <!-- Main Button -->
+                <button class="relative flex items-center justify-center w-32 h-32 rounded-full bg-gradient-to-br from-primary to-blue-600 shadow-[0_0_40px_rgba(13,89,242,0.4)] hover:scale-105 active:scale-95 transition-all duration-300 z-10">
+                    <span class="material-symbols-outlined text-white" style="font-size: 64px;">fingerprint</span>
+                </button>
+                <!-- Status Indicator Badge -->
+                <div class="absolute -top-2 -right-2 bg-surface-light dark:bg-surface-dark p-2 rounded-full shadow-lg border border-slate-100 dark:border-slate-800 z-20">
+                    <span class="material-symbols-outlined text-rose-500" style="font-size: 20px;">lock</span>
+                </div>
+            </div>
+            <div class="mt-8 text-center space-y-1">
+                <h3 class="text-slate-900 dark:text-white text-xl font-bold">Tap to Authenticate</h3>
+                <p class="text-text-secondary-light dark:text-text-secondary-dark text-sm max-w-[200px] mx-auto">Use FaceID or TouchID to send unlock keys</p>
+            </div>
+            <!-- Secondary Actions -->
+            <div class="grid grid-cols-2 gap-3 mt-8 w-full max-w-xs">
+                <button class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">restart_alt</span>
+                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Reboot</span>
+                </button>
+                <button class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <span class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark" style="font-size: 20px;">terminal</span>
+                    <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Terminal</span>
+                </button>
+            </div>
+        </div>
+        <!-- HeadlineText & DescriptionList: Logs -->
+        <div class="flex flex-col gap-2 bg-surface-light dark:bg-surface-dark rounded-xl p-5 border border-slate-200 dark:border-slate-800">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-slate-900 dark:text-white tracking-tight text-lg font-bold leading-tight">Connection Log</h3>
+                <button class="text-primary text-xs font-bold uppercase tracking-wider hover:text-blue-400">View All</button>
+            </div>
+            <div class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0">
+                <!-- Log Item 1 -->
+                <div class="col-span-2 grid grid-cols-subgrid py-3 border-b border-slate-100 dark:border-slate-800/50">
+                    <div class="flex flex-col items-center pt-1">
+                        <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                        <div class="w-px h-full bg-slate-200 dark:bg-slate-800 my-1"></div>
+                    </div>
+                    <div class="pb-1">
+                        <div class="flex justify-between items-baseline">
+                            <p class="text-slate-900 dark:text-white text-sm font-medium">Session Verified</p>
+                            <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs font-mono">10:45:00</p>
+                        </div>
+                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs mt-0.5">Token validated successfully</p>
+                    </div>
+                </div>
+                <!-- Log Item 2 -->
+                <div class="col-span-2 grid grid-cols-subgrid py-3 border-b border-slate-100 dark:border-slate-800/50">
+                    <div class="flex flex-col items-center pt-1">
+                        <div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                        <div class="w-px h-full bg-slate-200 dark:bg-slate-800 my-1"></div>
+                    </div>
+                    <div class="pb-1">
+                        <div class="flex justify-between items-baseline">
+                            <p class="text-slate-900 dark:text-white text-sm font-medium">Auth Request</p>
+                            <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs font-mono">10:42:05</p>
+                        </div>
+                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs mt-0.5">Biometric challenge received</p>
+                    </div>
+                </div>
+                <!-- Log Item 3 -->
+                <div class="col-span-2 grid grid-cols-subgrid py-3">
+                    <div class="flex flex-col items-center pt-1">
+                        <div class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-600"></div>
+                    </div>
+                    <div class="pb-1">
+                        <div class="flex justify-between items-baseline">
+                            <p class="text-slate-900 dark:text-white text-sm font-medium">Handshake Initiated</p>
+                            <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs font-mono">10:42:01</p>
+                        </div>
+                        <p class="text-text-secondary-light dark:text-text-secondary-dark text-xs mt-0.5">Connecting to 192.168.1.42...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="h-5"></div>
+    </div>
+</div>
+</body></html>

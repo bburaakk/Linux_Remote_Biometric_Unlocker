@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Paired Devices Management</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#0d59f2",
+                        "background-light": "#f5f6f8",
+                        "background-dark": "#101622",
+                    },
+                    fontFamily: {
+                        "display": ["Space Grotesk", "sans-serif"],
+                        "sans": ["Noto Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for better aesthetic on desktop view if needed, though mobile targeted */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #101622;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #282e39;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #374151;
+        }
+    </style>
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display antialiased text-slate-900 dark:text-white transition-colors duration-200">
+<div class="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto border-x border-slate-200 dark:border-slate-800 shadow-xl">
+    <!-- Header -->
+    <header class="sticky top-0 z-50 backdrop-blur-md bg-background-light/80 dark:bg-background-dark/80 border-b border-slate-200 dark:border-slate-800">
+        <div class="flex items-center p-4 justify-between">
+            <div>
+                <h2 class="text-xl font-bold leading-tight tracking-tight">My Devices</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Manage access &amp; permissions</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="group flex items-center justify-center size-10 rounded-full bg-primary/10 hover:bg-primary/20 active:scale-95 transition-all duration-200">
+                    <span class="material-symbols-outlined text-primary group-hover:text-primary transition-colors">add</span>
+                </button>
+            </div>
+        </div>
+    </header>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col p-4 gap-4">
+        <!-- Connection Status Summary -->
+        <div class="w-full bg-primary/10 border border-primary/20 rounded-xl p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="size-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
+                    <span class="material-symbols-outlined text-[20px]">security</span>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-900 dark:text-white">Secure Link Active</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Biometric authentication ready</p>
+                </div>
+            </div>
+            <div class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+            </div>
+        </div>
+        <!-- List Section Title -->
+        <div class="flex items-center justify-between mt-2">
+            <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Paired Machines</h3>
+            <span class="text-xs font-medium bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300">3 Devices</span>
+        </div>
+        <!-- Device List -->
+        <div class="flex flex-col gap-3">
+            <!-- Device Item 1: Active -->
+            <div class="group relative flex items-center gap-4 bg-white dark:bg-[#1a202c] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-pointer">
+                <div class="relative">
+                    <div class="flex items-center justify-center rounded-lg bg-slate-100 dark:bg-[#282e39] shrink-0 size-12 text-slate-700 dark:text-white">
+                        <span class="material-symbols-outlined text-[28px]">terminal</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 size-4 bg-background-light dark:bg-background-dark rounded-full flex items-center justify-center">
+                        <div class="size-2.5 bg-green-500 rounded-full border border-white dark:border-[#1a202c]"></div>
+                    </div>
+                </div>
+                <div class="flex flex-col flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <p class="text-base font-bold text-slate-900 dark:text-white truncate">Home Workstation</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wide text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded">Online</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-[#9ca6ba] text-xs font-normal truncate mt-0.5 font-sans">user@192.168.1.50 • Fedora 39</p>
+                </div>
+                <button class="shrink-0 text-slate-400 hover:text-primary transition-colors p-2 -mr-2">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+            </div>
+            <!-- Device Item 2: Warning/Away -->
+            <div class="group relative flex items-center gap-4 bg-white dark:bg-[#1a202c] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-pointer">
+                <div class="relative">
+                    <div class="flex items-center justify-center rounded-lg bg-slate-100 dark:bg-[#282e39] shrink-0 size-12 text-slate-700 dark:text-white">
+                        <span class="material-symbols-outlined text-[28px]">laptop_mac</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 size-4 bg-background-light dark:bg-background-dark rounded-full flex items-center justify-center">
+                        <div class="size-2.5 bg-yellow-500 rounded-full border border-white dark:border-[#1a202c]"></div>
+                    </div>
+                </div>
+                <div class="flex flex-col flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <p class="text-base font-bold text-slate-900 dark:text-white truncate">Arch Laptop</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wide text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-1.5 py-0.5 rounded">Away</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-[#9ca6ba] text-xs font-normal truncate mt-0.5 font-sans">dev@10.0.0.5 • Last seen 2h ago</p>
+                </div>
+                <button class="shrink-0 text-slate-400 hover:text-primary transition-colors p-2 -mr-2">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+            </div>
+            <!-- Device Item 3: Offline -->
+            <div class="group relative flex items-center gap-4 bg-white dark:bg-[#1a202c] border border-slate-200 dark:border-slate-800 rounded-xl p-4 shadow-sm hover:border-primary/50 transition-all cursor-pointer opacity-75">
+                <div class="relative">
+                    <div class="flex items-center justify-center rounded-lg bg-slate-100 dark:bg-[#282e39] shrink-0 size-12 text-slate-700 dark:text-white">
+                        <span class="material-symbols-outlined text-[28px]">dns</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 size-4 bg-background-light dark:bg-background-dark rounded-full flex items-center justify-center">
+                        <div class="size-2.5 bg-slate-500 rounded-full border border-white dark:border-[#1a202c]"></div>
+                    </div>
+                </div>
+                <div class="flex flex-col flex-1 min-w-0">
+                    <div class="flex items-center justify-between">
+                        <p class="text-base font-bold text-slate-900 dark:text-white truncate">Ubuntu Server</p>
+                        <span class="text-[10px] font-bold uppercase tracking-wide text-slate-600 bg-slate-100 dark:bg-slate-700 dark:text-slate-400 px-1.5 py-0.5 rounded">Offline</span>
+                    </div>
+                    <p class="text-slate-500 dark:text-[#9ca6ba] text-xs font-normal truncate mt-0.5 font-sans">root@192.168.1.100</p>
+                </div>
+                <button class="shrink-0 text-slate-400 hover:text-primary transition-colors p-2 -mr-2">
+                    <span class="material-symbols-outlined">more_vert</span>
+                </button>
+            </div>
+        </div>
+        <!-- Empty State / Promo Area (Hidden if devices exist, shown here for completeness of task request) -->
+        <!-- Note: In a real app this would be conditional. I'm adding a "Add New" card style here as a footer/option -->
+        <div class="mt-4 border-t border-slate-200 dark:border-slate-800 pt-6">
+            <div class="flex flex-col items-center justify-center gap-4 p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-[#151a25]">
+                <div class="size-14 rounded-full bg-slate-200 dark:bg-[#282e39] flex items-center justify-center">
+                    <span class="material-symbols-outlined text-3xl text-slate-500 dark:text-slate-400">qr_code_scanner</span>
+                </div>
+                <div class="text-center">
+                    <h4 class="text-base font-bold text-slate-900 dark:text-white">Pair New Device</h4>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-[200px] mx-auto">Scan the QR code from your Linux terminal to connect.</p>
+                </div>
+                <button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-blue-600 transition-colors">
+                    Scan QR Code
+                </button>
+                <button class="text-xs font-medium text-primary hover:underline">
+                    Enter IP Address Manually
+                </button>
+            </div>
+        </div>
+    </main>
+    <!-- Bottom Tab Bar (Contextual Navigation) -->
+    <nav class="sticky bottom-0 z-50 bg-background-light dark:bg-background-dark border-t border-slate-200 dark:border-slate-800 pb-safe">
+        <div class="flex justify-around items-center h-16">
+            <button class="flex flex-col items-center gap-1 p-2 text-primary">
+                <span class="material-symbols-outlined text-[24px] fill-1">devices</span>
+                <span class="text-[10px] font-medium">Devices</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined text-[24px]">history</span>
+                <span class="text-[10px] font-medium">Logs</span>
+            </button>
+            <button class="flex flex-col items-center gap-1 p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <span class="material-symbols-outlined text-[24px]">settings</span>
+                <span class="text-[10px] font-medium">Settings</span>
+            </button>
+        </div>
+        <!-- iOS Home Indicator Spacing -->
+        <div class="h-1 bg-transparent w-full"></div>
+    </nav>
+</div>
+</body></html>
