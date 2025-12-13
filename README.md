@@ -78,6 +78,4 @@ Bilgisayarınızın komutları alabilmesi için Python sunucusunu çalıştırma
 *   Eğer bağlantı hatası alırsanız, bilgisayarınızın güvenlik duvarının (Firewall) belirlediğiniz port'a (Varsayılan: 12345) izin verdiğinden emin olun.
 
 ---
-
-**Geliştirici:** [Adınız/Kullanıcı Adınız]
 **Lisans:** MIT
