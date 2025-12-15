@@ -26,6 +26,7 @@ class BiometricUnlockScreen extends StatefulWidget {
 class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with SingleTickerProviderStateMixin {
   final LocalAuthentication _auth = LocalAuthentication();
   final TextEditingController _ipController = TextEditingController();
+  final TextEditingController _macController = TextEditingController();
   String _deviceName = 'No Device';
   String _status = 'Please select or add a device.';
   bool _isUnlocking = false;
@@ -53,6 +54,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
   void dispose() {
     _animationController.dispose();
     _ipController.dispose();
+    _macController.dispose();
     super.dispose();
   }
 
@@ -81,6 +83,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
         if (_devices.isNotEmpty) {
           _deviceName = _devices.first['name'];
           _ipController.text = _devices.first['ip'];
+          _macController.text = _devices.first['mac'] ?? '';
           _status = 'Selected device: $_deviceName';
           _addLog('App Started', 'Loaded ${_devices.length} devices.');
         } else {
@@ -96,6 +99,76 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
     final prefs = await SharedPreferences.getInstance();
     final String encodedDevices = jsonEncode(_devices);
     await prefs.setString('devices', encodedDevices);
+  }
+
+  Future<void> _sendWakeOnLanPacket() async {
+    if (_macController.text.isEmpty || _ipController.text.isEmpty) {
+      _addLog('WoL Failed', 'MAC or IP address is missing.', isError: true);
+      setState(() {
+        _status = 'MAC or IP address is missing for WoL.';
+      });
+      return;
+    }
+
+    setState(() {
+      _status = 'Sending Wake-on-LAN packet to $_deviceName...';
+    });
+    _addLog('WoL', 'Sending magic packet to ${_macController.text}');
+
+    try {
+      // Clean MAC address
+      String macClean = _macController.text.replaceAll(RegExp(r'[^a-fA-F0-9]'), '');
+      if (macClean.length != 12) {
+        throw FormatException('Invalid MAC address format');
+      }
+
+      // Convert MAC to bytes
+      List<int> macBytes = [];
+      for (int i = 0; i < 12; i += 2) {
+        macBytes.add(int.parse(macClean.substring(i, i + 2), radix: 16));
+      }
+
+      // Construct Magic Packet
+      // 6 bytes of 0xFF
+      List<int> packet = List.filled(6, 0xFF, growable: true);
+      // 16 repetitions of MAC address
+      for (int i = 0; i < 16; i++) {
+        packet.addAll(macBytes);
+      }
+
+      // Send packet via UDP
+      RawDatagramSocket.bind(InternetAddress.anyIPv4, 0).then((socket) {
+        socket.broadcastEnabled = true;
+        
+        // Send to the specific IP provided
+        socket.send(packet, InternetAddress(_ipController.text), 9);
+        
+        // Also try to send to broadcast address if possible (simple assumption)
+        // Assuming /24 subnet for simplicity: replace last octet with 255
+        try {
+            List<String> parts = _ipController.text.split('.');
+            if (parts.length == 4) {
+                parts[3] = '255';
+                String broadcastIp = parts.join('.');
+                socket.send(packet, InternetAddress(broadcastIp), 9);
+            }
+        } catch (e) {
+            // Ignore broadcast calculation errors
+        }
+        
+        socket.close();
+      });
+
+      _addLog('WoL', 'Magic packet sent successfully!');
+      setState(() {
+        _status = 'Wake-on-LAN packet sent!';
+      });
+    } catch (e) {
+      _addLog('WoL Error', 'Failed to send magic packet: $e', isError: true);
+      setState(() {
+        _status = 'Error sending WoL packet.';
+      });
+    }
   }
 
   Future<void> _sendUnlockSignal() async {
@@ -149,9 +222,9 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
     if (_isUnlocking) return;
     bool authenticated = false;
     try {
-      _addLog('Authentication', 'Biometric challenge initiated.');
+      _addLog('Authentication', 'Biometric challenge for UNLOCK initiated.');
       setState(() {
-        _status = 'Authenticating...';
+        _status = 'Authenticating for Unlock...';
       });
       authenticated = await _auth.authenticate(
         localizedReason: 'Scan your fingerprint or use FaceID to unlock $_deviceName',
@@ -177,6 +250,38 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
     }
   }
 
+  Future<void> _authenticateAndWake() async {
+    if (_isUnlocking) return; // Prevent multiple operations
+    bool authenticated = false;
+    try {
+      _addLog('Authentication', 'Biometric challenge for WAKE-ON-LAN initiated.');
+      setState(() {
+        _status = 'Authenticating for Wake-on-LAN...';
+      });
+      authenticated = await _auth.authenticate(
+        localizedReason: 'Scan your fingerprint or use FaceID to wake up $_deviceName',
+        options: const AuthenticationOptions(stickyAuth: true, biometricOnly: true),
+      );
+    } on PlatformException catch (e) {
+      _addLog('Authentication Error', e.message ?? 'An unknown error occurred.', isError: true);
+      setState(() {
+        _status = 'Auth Error: ${e.message}';
+      });
+      return;
+    }
+    if (!mounted) return;
+
+    if (authenticated) {
+      _addLog('Authentication', 'Session verified successfully.');
+      await _sendWakeOnLanPacket();
+    } else {
+      _addLog('Authentication Failed', 'User did not authenticate.', isError: true);
+      setState(() {
+        _status = 'Authentication Failed.';
+      });
+    }
+  }
+
   Future<void> _navigateToDeviceManagement() async {
     final result = await Navigator.push(
       context,
@@ -190,6 +295,7 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
       setState(() {
         _deviceName = result['name'] as String;
         _ipController.text = result['ip'] as String;
+        _macController.text = result['mac'] as String? ?? '';
         _status = 'Selected device: $_deviceName';
         _addLog('Device Selected', 'Switched to $_deviceName.');
       });
@@ -221,6 +327,8 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
             _buildStatusCard(theme),
             const SizedBox(height: 24),
             _buildUnlockButton(theme),
+            const SizedBox(height: 24),
+            _buildWakeOnLanButton(theme),
             const SizedBox(height: 24),
             _buildConnectionLog(theme),
           ],
@@ -275,6 +383,13 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
                 const SizedBox(height: 4),
                 Text(
                   'IP: ${_ipController.text}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.secondary,
+                  ),
+                ),
+                 const SizedBox(height: 4),
+                Text(
+                  'MAC: ${_macController.text}',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.secondary,
                   ),
@@ -352,6 +467,33 @@ class _BiometricUnlockScreenState extends State<BiometricUnlockScreen> with Sing
           style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.secondary),
           textAlign: TextAlign.center,
         ),
+      ],
+    );
+  }
+
+  Widget _buildWakeOnLanButton(ThemeData theme) {
+    bool canWake = _macController.text.isNotEmpty;
+    return Column(
+      children: [
+        ElevatedButton.icon(
+          onPressed: canWake ? _authenticateAndWake : null,
+          icon: const Icon(Icons.power_settings_new),
+          label: Text('Wake Up $_deviceName'),
+          style: ElevatedButton.styleFrom(
+            foregroundColor: Colors.white, backgroundColor: canWake ? Colors.green : Colors.grey,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        if (!canWake)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'MAC address not set for this device.',
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.orange),
+            ),
+          ),
       ],
     );
   }

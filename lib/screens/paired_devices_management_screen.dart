@@ -1,5 +1,8 @@
+import 'dart:ui';
+import 'package:fingerprint/screens/system_monitor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:encrypt/encrypt.dart' as encrypt;
 
 class PairedDevicesManagementScreen extends StatefulWidget {
   final List<Map<String, dynamic>> devices;
@@ -21,266 +24,273 @@ class _PairedDevicesManagementScreenState
     _devices = widget.devices;
   }
 
-  void _addDevice(String name, String ip) {
+  String _generateRandomKey() {
+    final key = encrypt.Key.fromSecureRandom(32);
+    return key.base64;
+  }
+
+  void _saveDevice({
+    required String name,
+    required String ip,
+    required String mac, // MAC adresi eklendi
+    required String secretKey,
+    int? index,
+  }) {
     setState(() {
-      // Gelen listeyi doğrudan güncelliyoruz
-      _devices.add({
-        // İkonları dinamik olarak atayabiliriz veya sabit bir ikon kullanabiliriz
-        'icon': Icons.devices.codePoint, // İkonu codePoint olarak saklıyoruz
+      final deviceData = {
+        'icon': Icons.devices.codePoint,
         'name': name,
         'ip': ip,
+        'mac': mac, // MAC adresi kaydediliyor
+        'secretKey': secretKey,
         'status': 'Online',
         'details': 'user@$ip',
-        'statusColor': Colors.green.value, // Rengi value olarak saklıyoruz
+        'statusColor': Colors.green.value,
         'isOffline': false,
-      });
+      };
+
+      if (index != null) {
+        _devices[index] = deviceData;
+      } else {
+        _devices.add(deviceData);
+      }
     });
   }
 
-  Future<void> _showAddDeviceDialog() async {
-    final nameController = TextEditingController();
-    final ipController = TextEditingController();
+  Future<void> _showDeviceDialog({Map<String, dynamic>? device, int? index}) async {
+    final isEditing = device != null;
+    final nameController = TextEditingController(text: device?['name'] ?? '');
+    final ipController = TextEditingController(text: device?['ip'] ?? '');
+    final macController = TextEditingController(text: device?['mac'] ?? ''); // MAC controller
+    final keyController = TextEditingController(text: device?['secretKey'] ?? _generateRandomKey());
+    
     return showDialog<void>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Add New Device'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Device Name'),
-              ),
-              TextField(
-                controller: ipController,
-                decoration: const InputDecoration(labelText: 'IP Address'),
-              ),
-            ],
+          backgroundColor: const Color(0xFF020617).withOpacity(0.9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withOpacity(0.2)),
+          ),
+          title: Text(isEditing ? 'Edit Device' : 'Add New Device'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Device Name', icon: Icon(Icons.computer)),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: ipController,
+                  decoration: const InputDecoration(labelText: 'IP Address', icon: Icon(Icons.wifi)),
+                  keyboardType: TextInputType.number,
+                ),
+                const SizedBox(height: 8),
+                // MAC Adresi Alanı
+                TextField(
+                  controller: macController,
+                  decoration: const InputDecoration(labelText: 'MAC Address (for WoL)', icon: Icon(Icons.device_hub)),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: keyController,
+                  decoration: InputDecoration(
+                    labelText: 'Secret Key (Base64)',
+                    icon: const Icon(Icons.vpn_key),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.refresh),
+                      tooltip: 'Generate New Key',
+                      onPressed: () => keyController.text = _generateRandomKey(),
+                    ),
+                  ),
+                  maxLines: 2,
+                  style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+                ),
+              ],
+            ),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            TextButton(
-              child: const Text('Add'),
+            ElevatedButton(
+              child: Text(isEditing ? 'Save' : 'Add'),
               onPressed: () {
-                if (nameController.text.isNotEmpty && ipController.text.isNotEmpty) {
-                  _addDevice(nameController.text, ipController.text);
+                if (nameController.text.isNotEmpty && 
+                    ipController.text.isNotEmpty && 
+                    keyController.text.isNotEmpty) {
+                  _saveDevice(
+                    name: nameController.text, 
+                    ip: ipController.text,
+                    mac: macController.text, // MAC adresini kaydet
+                    secretKey: keyController.text,
+                    index: index,
+                  );
+                  Navigator.of(context).pop();
                 }
-                Navigator.of(context).pop();
               },
             ),
           ],
         );
       },
-  );
+    );
   }
 
   void _selectDevice(Map<String, dynamic> device) {
     Navigator.pop(context, {
       'name': device['name'],
       'ip': device['ip'],
+      'mac': device['mac'] ?? '',
+      'secretKey': device['secretKey'] ?? '',
+    });
+  }
+
+  void _navigateToMonitor(Map<String, dynamic> device) {
+    final secretKey = device['secretKey'] as String? ?? '';
+    
+    if (secretKey.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: This device has no Secret Key. Please delete and re-add it.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SystemMonitorScreen(
+          deviceName: device['name'],
+          ipAddress: device['ip'],
+          secretKey: secretKey,
+        ),
+      ),
+    );
+  }
+
+  void _deleteDevice(int index) {
+    setState(() {
+      _devices.removeAt(index);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'My Devices',
-              style: GoogleFonts.spaceGrotesk(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              'Tap a device to select it',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.secondary),
-            ),
-          ],
-        ),
+        title: const Text('My Devices'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: _showAddDeviceDialog,
+            onPressed: () => _showDeviceDialog(),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatusCard(theme, isDarkMode),
-            const SizedBox(height: 24),
-            _buildSectionTitle(theme),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _devices.length,
-                itemBuilder: (context, index) {
-                  final device = _devices[index];
-                  return _buildDeviceItem(
-                    theme: theme,
-                    device: device,
-                    onTap: () => _selectDevice(device),
-                  );
+      body: _devices.isEmpty 
+          ? Center(child: Text("No devices added yet.", style: theme.textTheme.bodyLarge))
+          : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: _devices.length,
+            itemBuilder: (context, index) {
+              final device = _devices[index];
+              return Dismissible(
+                key: Key(device['name'] + device['ip']),
+                direction: DismissDirection.endToStart,
+                background: Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.only(right: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  alignment: Alignment.centerRight,
+                  child: const Icon(Icons.delete, color: Colors.white),
+                ),
+                onDismissed: (direction) {
+                  _deleteDevice(index);
                 },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusCard(ThemeData theme, bool isDarkMode) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: theme.colorScheme.primary.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.security, color: theme.colorScheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Secure Link Active',
-                  style: theme.textTheme.titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Biometric authentication ready',
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.secondary),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(ThemeData theme) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          'Paired Machines',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.secondary,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            '${_devices.length} Devices',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.secondary),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeviceItem({
-    required ThemeData theme,
-    required Map<String, dynamic> device,
-    required VoidCallback onTap,
-  }) {
-    final isOffline = device['isOffline'] ?? false;
-    // JSON'dan okurken IconData ve Color'ı doğru şekilde oluşturuyoruz
-    final icon = IconData(device['icon'], fontFamily: 'MaterialIcons');
-    final statusColor = Color(device['statusColor']);
-
-    return Opacity(
-      opacity: isOffline ? 0.5 : 1.0,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(icon, size: 40, color: theme.colorScheme.secondary),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: _OptimizedGlassCard(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () => _selectDevice(device),
+                    onLongPress: () => _showDeviceDialog(device: device, index: index),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
                         children: [
-                          Text(
-                            device['name'],
-                            style: theme.textTheme.titleMedium
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
+                          Icon(Icons.computer, size: 40, color: theme.colorScheme.primary),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device['name'],
+                                  style: theme.textTheme.titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  device['ip'],
+                                  style: theme.textTheme.bodySmall,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            child: Text(
-                              device['status'],
-                              style: theme.textTheme.bodySmall
-                                  ?.copyWith(color: statusColor),
-                            ),
                           ),
+                          IconButton(
+                            icon: const Icon(Icons.monitor_heart_outlined),
+                            tooltip: 'System Monitor',
+                            onPressed: () => _navigateToMonitor(device),
+                            color: Colors.white70,
+                          ),
+                          const Icon(Icons.chevron_right, color: Colors.grey),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        device['details'],
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.secondary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: theme.colorScheme.secondary),
-              ],
-            ),
+              );
+            },
           ),
+    );
+  }
+}
+
+class _OptimizedGlassCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? margin;
+  const _OptimizedGlassCard({required this.child, this.margin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: margin,
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withOpacity(0.5),
+        borderRadius: BorderRadius.circular(16.0),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.2),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
+      child: child,
     );
   }
 }

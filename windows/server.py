@@ -33,7 +33,7 @@ SHUTDOWN_COMMAND = "shutdown"
 REBOOT_COMMAND = "reboot"
 SUSPEND_COMMAND = "suspend"
 
-# Generated Key for Testing
+# IMPORTANT: This key must match the one in your mobile app
 SECRET_KEY_B64 = 'S3J5cHRvR2VuZXJhdGVkS2V5MTIzNDU2Nzg5MDEyMzQ=' 
 SECRET_KEY = base64.b64decode(SECRET_KEY_B64)
 # --- End Configuration ---
@@ -54,7 +54,7 @@ def init_gpu():
             nvml_handle = None
 
 def get_system_stats():
-    """Gathers CPU, GPU, RAM, and Disk statistics."""
+    """Gathers CPU, GPU, RAM, and Disk statistics for Windows."""
     stats = {
         'cpu': {'usage': 0, 'temp': 'N/A'},
         'gpu': {'usage': 0, 'temp': 'N/A', 'fan_speed': 'N/A', 'name': 'N/A'},
@@ -65,16 +65,8 @@ def get_system_stats():
     try:
         # --- CPU ---
         if psutil:
-            stats['cpu']['usage'] = psutil.cpu_percent(interval=None) # Non-blocking call
-            if hasattr(psutil, 'sensors_temperatures'):
-                try:
-                    temps = psutil.sensors_temperatures()
-                    if 'coretemp' in temps:
-                        stats['cpu']['temp'] = temps['coretemp'][0].current
-                    elif 'k10temp' in temps: # AMD CPUs
-                        stats['cpu']['temp'] = temps['k10temp'][0].current
-                except Exception as e:
-                    print(f"CPU Temp Error: {e}")
+            stats['cpu']['usage'] = psutil.cpu_percent(interval=None)
+            # CPU temp on Windows is not standardized via psutil
 
         # --- RAM ---
         if psutil:
@@ -84,7 +76,7 @@ def get_system_stats():
 
         # --- Disk ---
         if psutil:
-            disk = psutil.disk_usage('/')
+            disk = psutil.disk_usage('C:\\')
             stats['disk']['usage'] = disk.percent
             stats['disk']['total'] = round(disk.total / (1024**3), 2)
 
@@ -92,34 +84,18 @@ def get_system_stats():
         if nvml_handle:
             try:
                 name_raw = pynvml.nvmlDeviceGetName(nvml_handle)
-                if isinstance(name_raw, bytes):
-                    stats['gpu']['name'] = name_raw.decode('utf-8')
-                else:
-                    stats['gpu']['name'] = str(name_raw)
-                    
+                stats['gpu']['name'] = name_raw.decode('utf-8') if isinstance(name_raw, bytes) else str(name_raw)
                 util = pynvml.nvmlDeviceGetUtilizationRates(nvml_handle)
                 stats['gpu']['usage'] = util.gpu
                 stats['gpu']['temp'] = pynvml.nvmlDeviceGetTemperature(nvml_handle, pynvml.NVML_TEMPERATURE_GPU)
-                
                 try:
                     stats['gpu']['fan_speed'] = pynvml.nvmlDeviceGetFanSpeed(nvml_handle)
                 except pynvml.NVMLError:
-                    if psutil and hasattr(psutil, 'sensors_fans'):
-                        fans = psutil.sensors_fans()
-                        fan_speed = 'N/A'
-                        for name, entries in fans.items():
-                            for entry in entries:
-                                if entry.current > 0:
-                                    fan_speed = entry.current
-                                    break
-                            if fan_speed != 'N/A':
-                                break
-                        stats['gpu']['fan_speed'] = fan_speed
+                    stats['gpu']['fan_speed'] = 'N/A'
 
             except pynvml.NVMLError as e:
                 print(f"NVML Runtime Error: {e}")
-                # Try to re-init if handle became invalid
-                init_gpu()
+                init_gpu() # Try to re-init
             except Exception as e:
                 print(f"GPU General Error: {e}")
                 traceback.print_exc()
@@ -130,62 +106,24 @@ def get_system_stats():
         
     return stats
 
-def get_active_session_id():
-    """Finds the active graphical session ID."""
-    try:
-        user = getpass.getuser()
-        result = subprocess.run(
-            ['loginctl', 'list-sessions', '--no-legend'],
-            capture_output=True, text=True, check=True
-        )
-        sessions = result.stdout.strip().split('\n')
-        for session in sessions:
-            parts = session.split()
-            if len(parts) >= 3 and parts[2] == user:
-                if 'seat' in session or 'tty' in session:
-                    return parts[0].strip()
-        return None
-    except Exception as e:
-        print(f"Error finding active session: {e}")
-        return None
-
-def wake_screen():
-    """Attempts to wake up the screen."""
-    try:
-        # Try xset (X11)
-        subprocess.run(['xset', 'dpms', 'force', 'on'], stderr=subprocess.DEVNULL)
-        # Try busctl (Wayland/GNOME)
-        subprocess.run(['busctl', '--user', 'call', 'org.gnome.SessionManager', '/org/gnome/SessionManager', 'org.gnome.SessionManager', 'Uninhibit', 'u', 1], stderr=subprocess.DEVNULL)
-    except Exception:
-        pass
-
 def unlock_session():
-    """Finds the active session and unlocks it."""
-    session_id = get_active_session_id()
-    if not session_id:
-        return False
-    try:
-        print("Waking screen...")
-        wake_screen()
-        print(f"Unlocking session {session_id}...")
-        subprocess.run(['loginctl', 'unlock-session', session_id], check=True)
-        return True
-    except Exception as e:
-        print(f"Error executing unlock command: {e}")
-        return False
+    """Unlocking is not supported on Windows via simple commands."""
+    print("Unlock command received, but it's not supported on Windows.")
+    return False
 
 def execute_power_command(command):
-    """Executes system power commands."""
+    """Executes system power commands on Windows."""
     try:
         if command == SHUTDOWN_COMMAND:
             print("Executing Shutdown...")
-            subprocess.run(['systemctl', 'poweroff'], check=True)
+            subprocess.run(['shutdown', '/s', '/t', '0'], check=True)
         elif command == REBOOT_COMMAND:
             print("Executing Reboot...")
-            subprocess.run(['systemctl', 'reboot'], check=True)
+            subprocess.run(['shutdown', '/r', '/t', '0'], check=True)
         elif command == SUSPEND_COMMAND:
             print("Executing Suspend...")
-            subprocess.run(['systemctl', 'suspend'], check=True)
+            # Using rundll32 for suspend/sleep
+            subprocess.run(['rundll32.exe', 'powrprof.dll,SetSuspendState', '0,1,0'], check=True)
         return True
     except Exception as e:
         print(f"Error executing power command '{command}': {e}")
@@ -206,10 +144,9 @@ def decrypt_message(encrypted_data):
 
 def main():
     """Starts the socket server."""
-    print("--- Linux Remote Unlock & Stats Server ---")
+    print("--- Windows Remote Control & Stats Server ---")
     print(f"Starting server on {HOST}:{PORT}")
     
-    # Initialize GPU once
     init_gpu()
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -221,7 +158,6 @@ def main():
         while True:
             conn, addr = s.accept()
             with conn:
-                # print(f"\nConnected by {addr}") # Reduce log spam
                 try:
                     data = conn.recv(1024)
                     if not data:
@@ -230,23 +166,13 @@ def main():
                     message = decrypt_message(data)
                     
                     if message:
-                        # print(f"Decrypted message: '{message}'")
-                        
                         if message == UNLOCK_COMMAND:
-                            if unlock_session():
-                                conn.sendall(b"Unlock command successful")
-                            else:
-                                conn.sendall(b"Unlock command failed")
+                            conn.sendall(b"Unlock not supported on Windows")
                         
                         elif message == GET_STATS_COMMAND:
-                            try:
-                                stats = get_system_stats()
-                                response = json.dumps(stats).encode('utf-8')
-                                conn.sendall(response)
-                            except Exception as e:
-                                print(f"Error sending stats: {e}")
-                                traceback.print_exc()
-                                conn.sendall(b"Error: Could not gather stats")
+                            stats = get_system_stats()
+                            response = json.dumps(stats).encode('utf-8')
+                            conn.sendall(response)
                         
                         elif message in [SHUTDOWN_COMMAND, REBOOT_COMMAND, SUSPEND_COMMAND]:
                             if execute_power_command(message):
@@ -255,10 +181,8 @@ def main():
                                 conn.sendall(f"Command {message} failed".encode('utf-8'))
                             
                         else:
-                            print(f"Unknown command received: {message}")
                             conn.sendall(b"Unknown command")
                     else:
-                        print("Failed to decrypt message.")
                         conn.sendall(b"Error: Decryption failed")
                 
                 except Exception as e:

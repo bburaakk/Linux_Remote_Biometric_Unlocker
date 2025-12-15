@@ -2,14 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fingerprint/screens/biometric_unlock_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// --- Theme Colors from HTML ---
-const Color primaryColor = Color(0xFF0D59F2);
-const Color backgroundLight = Color(0xFFF5F6F8);
-const Color backgroundDark = Color(0xFF101622);
-const Color surfaceLight = Color(0xFFFFFFFF);
-const Color surfaceDark = Color(0xFF1B1F27);
-const Color textSecondaryLight = Color(0xFF64748B);
-const Color textSecondaryDark = Color(0xFF9CA6BA);
+// --- New Futurist Theme Colors ---
+const Color bgColor = Color(0xFF020617); // Deepest midnight blue
+const Color glassColor = Color.fromRGBO(30, 41, 59, 0.4);
+const Color neonCyan = Color(0xFF00F0FF);
 // --- End Theme Colors ---
 
 void main() {
@@ -21,67 +17,49 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Using GoogleFonts package for 'Space Grotesk' and 'Noto Sans'
+    // Yeni temamız için fontları tanımlıyoruz
     final textTheme = Theme.of(context).textTheme;
-    final darkTextTheme = Theme.of(context).primaryTextTheme;
+    final darkTextTheme = GoogleFonts.interTextTheme(textTheme).apply(
+      bodyColor: Colors.white70,
+      displayColor: Colors.white,
+    );
 
     return MaterialApp(
-      title: 'Biometric Unlock',
+      title: 'Linux Remote Unlocker',
       debugShowCheckedModeBanner: false,
       
-      // --- Light Theme ---
+      // Sadece yeni koyu temayı kullanıyoruz
       theme: ThemeData(
-        brightness: Brightness.light,
-        scaffoldBackgroundColor: backgroundLight,
-        colorScheme: const ColorScheme.light(
-          primary: primaryColor,
-          surface: surfaceLight,
-          background: backgroundLight,
-          secondary: textSecondaryLight,
-        ),
-        textTheme: GoogleFonts.notoSansTextTheme(textTheme),
-        appBarTheme: AppBarTheme(
-          backgroundColor: backgroundLight,
-          elevation: 0,
-          titleTextStyle: GoogleFonts.spaceGrotesk(
-            textStyle: textTheme.headlineSmall?.copyWith(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          iconTheme: const IconThemeData(color: Colors.black),
-        ),
-      ),
-
-      // --- Dark Theme ---
-      darkTheme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: backgroundDark,
-        colorScheme: const ColorScheme.dark(
-          primary: primaryColor,
-          surface: surfaceDark,
-          background: backgroundDark,
-          secondary: textSecondaryDark,
-        ),
-        textTheme: GoogleFonts.notoSansTextTheme(darkTextTheme).apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
+        scaffoldBackgroundColor: bgColor,
+        primaryColor: neonCyan,
+        
+        // Fontları ayarla
+        textTheme: darkTextTheme,
+        
+        // AppBar Teması
         appBarTheme: AppBarTheme(
-          backgroundColor: backgroundDark,
+          backgroundColor: bgColor.withOpacity(0.8),
           elevation: 0,
-          titleTextStyle: GoogleFonts.spaceGrotesk(
-            textStyle: darkTextTheme.headlineSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+          titleTextStyle: GoogleFonts.jetBrainsMono(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
-          iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Colors.white70),
+        ),
+
+        // Diğer UI elemanları
+        colorScheme: const ColorScheme.dark(
+          primary: neonCyan,
+          secondary: neonCyan,
+          surface: glassColor,
+          background: bgColor,
         ),
       ),
 
-      // Use system setting for theme mode
-      themeMode: ThemeMode.system, 
+      // Temayı koyu moda sabitliyoruz
+      themeMode: ThemeMode.dark, 
       
       home: const BiometricUnlockScreen(),
     );
