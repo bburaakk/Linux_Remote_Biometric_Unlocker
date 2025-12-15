@@ -1,15 +1,16 @@
 # 📱 Linux Remote Biometric Unlocker
 
-**Telefonunuzun parmak izi veya yüz tanıma sensörünü kullanarak Linux bilgisayarınızın kilidini uzaktan açın.**
+**Telefonunuzun parmak izi veya yüz tanıma sensörünü kullanarak Linux bilgisayarınızın kilidini uzaktan açın ve bilgisayarınızı uzaktan başlatın.**
 
-Bu proje, Flutter ile geliştirilmiş bir mobil uygulama ve Linux bilgisayarınızda çalışan bir Python sunucusundan oluşur. Yerel ağ (Wi-Fi) üzerinden güvenli ve şifreli bir şekilde bilgisayarınızın kilidini açmanızı sağlar.
+Bu proje, Flutter ile geliştirilmiş bir mobil uygulama ve Linux bilgisayarınızda çalışan bir Python sunucusundan oluşur. Yerel ağ (Wi-Fi) üzerinden güvenli ve şifreli bir şekilde bilgisayarınızın kilidini açmanızı ve Wake-on-LAN (WoL) özelliği ile bilgisayarınızı uzaktan başlatmanızı sağlar.
 
 ## ✨ Özellikler
 
 *   **👆 Biyometrik Doğrulama:** Telefonunuzun yerel parmak izi (Fingerprint) veya yüz tanıma (FaceID) sensörlerini kullanır.
+*   **⚡ Uzaktan Başlatma (Wake-on-LAN):** Bilgisayarınız kapalıyken aynı ağ üzerinden uzaktan açmanızı sağlar.
 *   **🔐 Yüksek Güvenlik:** İletişim, AES-CBC algoritması ile uçtan uca şifrelenir. Her cihaz için özel anahtar (Secret Key) kullanılır.
 *   **🖥️ Çoklu Cihaz Desteği:** Birden fazla bilgisayarı tek uygulamadan yönetebilirsiniz.
-*   **📝 Bağlantı Logları:** Başarılı ve başarısız kilit açma girişimlerini uygulama içinde görebilirsiniz.
+*   **📝 Bağlantı Logları:** Başarılı ve başarısız kilit açma ve başlatma girişimlerini uygulama içinde görebilirsiniz.
 *   **⚡ Hızlı ve Hafif:** Python sunucusu minimum kaynak tüketir.
 
 ---
@@ -46,6 +47,7 @@ Bilgisayarınızın komutları alabilmesi için Python sunucusunu çalıştırma
 4.  Bilgileri girin:
     *   **Cihaz Adı:** Örn: "Ev Bilgisayarım"
     *   **IP Adresi:** Bilgisayarınızın yerel IP adresi (Terminalde `ip addr` yazarak öğrenebilirsiniz).
+    *   **MAC Adresi (WoL için):** Bilgisayarınızı uzaktan başlatmak için gereklidir. `ip addr` komutunda `link/ether` ile başlayan satırda bulabilirsiniz.
     *   **Secret Key (Gizli Anahtar):** Buradaki "Yenile" butonuna basarak güvenli bir anahtar oluşturun.
 5.  **ÖNEMLİ:** Uygulamada oluşturduğunuz bu **Secret Key**'i kopyalayın ve bilgisayarınızdaki `server.py` dosyasındaki `SECRET_KEY_STRING` alanına yapıştırın. İki taraftaki anahtar AYNI olmalıdır.
 
@@ -53,6 +55,7 @@ Bilgisayarınızın komutları alabilmesi için Python sunucusunu çalıştırma
 
 ## 📱 Nasıl Kullanılır?
 
+### Kilit Açma
 1.  Bilgisayarınızda `server.py`'ın çalıştığından emin olun.
 2.  Telefonda uygulamayı açın.
 3.  Eklediğiniz cihazın seçili olduğunu doğrulayın (Yeşil nokta yanmalı).
@@ -60,12 +63,20 @@ Bilgisayarınızın komutları alabilmesi için Python sunucusunu çalıştırma
 5.  Telefonunuzun biyometrik doğrulamasını geçin.
 6.  Bilgisayarınızın kilidi açılacaktır! 🎉
 
+### Uzaktan Başlatma (Wake-on-LAN)
+1.  Bilgisayarınızın BIOS/UEFI ayarlarından "Wake on LAN" özelliğinin etkin olduğundan emin olun.
+2.  Telefonda uygulamayı açın.
+3.  Cihaz için MAC adresini doğru girdiğinizden emin olun.
+4.  **Wake Up** düğmesine basın.
+5.  Telefonunuzun biyometrik doğrulamasını geçin.
+6.  Bilgisayarınız başlayacaktır! 🚀
+
 ---
 
 ## 🛠️ Teknik Detaylar
 
 *   **Dil:** Dart (Flutter) & Python
-*   **İletişim:** TCP Socket
+*   **İletişim:** TCP Socket (Kilit açma), UDP (Wake-on-LAN)
 *   **Şifreleme:** AES (Advanced Encryption Standard) - CBC Mode
 *   **Paketler:**
     *   `local_auth`: Biyometrik doğrulama için.
@@ -76,6 +87,7 @@ Bilgisayarınızın komutları alabilmesi için Python sunucusunu çalıştırma
 
 *   Bilgisayar ve telefon **aynı Wi-Fi ağında** olmalıdır.
 *   Eğer bağlantı hatası alırsanız, bilgisayarınızın güvenlik duvarının (Firewall) belirlediğiniz port'a (Varsayılan: 12345) izin verdiğinden emin olun.
+*   Wake-on-LAN'ın çalışması için anakartınızın ve ağ kartınızın bu özelliği desteklemesi ve BIOS/UEFI ayarlarından etkinleştirilmesi gerekir.
 
 ---
 **Lisans:** MIT
