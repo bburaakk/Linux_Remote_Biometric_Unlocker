@@ -6,8 +6,8 @@ import json
 import traceback
 import ctypes
 import time
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import unpad
+from Cryptodome.Cipher import AES
+from Cryptodome.Util.Padding import unpad
 
 # --- System Stats Libraries ---
 try:
