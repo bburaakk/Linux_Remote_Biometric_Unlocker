@@ -14,15 +14,19 @@ try:
     import psutil
 except ImportError:
     print("Warning: 'psutil' library not found. System stats will be unavailable.")
-    print("Install it using: pip install psutil")
     psutil = None
 
 try:
     import pynvml
 except ImportError:
     print("Warning: 'pynvml' library not found. NVIDIA GPU stats will be unavailable.")
-    print("Install it using: pip install pynvml")
     pynvml = None
+
+try:
+    import wmi
+except ImportError:
+    # print("Warning: 'wmi' library not found. CPU temp might be unavailable on Windows.")
+    wmi = None
 
 # --- Configuration ---
 HOST = '0.0.0.0'
@@ -41,18 +45,43 @@ SECRET_KEY = base64.b64decode(SECRET_KEY_B64)
 
 # Global NVML Handle
 nvml_handle = None
+wmi_obj = None
 
-def init_gpu():
-    """Initializes NVML once at startup."""
-    global nvml_handle
+def init_hardware():
+    """Initializes hardware monitors."""
+    global nvml_handle, wmi_obj
+    
+    # Init NVIDIA GPU
     if pynvml:
         try:
             pynvml.nvmlInit()
             nvml_handle = pynvml.nvmlDeviceGetHandleByIndex(0)
             print("NVML Initialized successfully.")
-        except pynvml.NVMLError as e:
-            print(f"Failed to initialize NVML: {e}")
+        except Exception as e:
+            print(f"NVML Init Failed: {e}")
             nvml_handle = None
+
+    # Init WMI for Windows CPU Temp
+    if wmi:
+        try:
+            wmi_obj = wmi.WMI(namespace="root\\wmi")
+        except Exception:
+            wmi_obj = None
+
+def get_cpu_temp_windows():
+    """Attempts to get CPU temperature on Windows using WMI."""
+    if not wmi_obj:
+        return 'N/A'
+    try:
+        temperature_info = wmi_obj.MSAcpi_ThermalZoneTemperature()
+        if temperature_info:
+            # Kelvin to Celsius: (K - 273.2)
+            temp_kelvin = temperature_info[0].CurrentTemperature
+            temp_celsius = (temp_kelvin / 10.0) - 273.15
+            return round(temp_celsius, 1)
+    except Exception:
+        pass
+    return 'N/A'
 
 def get_system_stats():
     """Gathers CPU, GPU, RAM, and Disk statistics."""
@@ -67,16 +96,7 @@ def get_system_stats():
         # --- CPU ---
         if psutil:
             stats['cpu']['usage'] = psutil.cpu_percent(interval=None)
-            # Windows usually requires 'OpenHardwareMonitor' or WMI for temps, 
-            # psutil often doesn't show temps on Windows directly without help.
-            # We will leave it as N/A or try to fetch if available.
-            if hasattr(psutil, 'sensors_temperatures'):
-                try:
-                    temps = psutil.sensors_temperatures()
-                    if 'coretemp' in temps:
-                        stats['cpu']['temp'] = temps['coretemp'][0].current
-                except:
-                    pass
+            stats['cpu']['temp'] = get_cpu_temp_windows()
 
         # --- RAM ---
         if psutil:
@@ -86,9 +106,12 @@ def get_system_stats():
 
         # --- Disk ---
         if psutil:
-            disk = psutil.disk_usage('C:\\') # Usually C: on Windows
-            stats['disk']['usage'] = disk.percent
-            stats['disk']['total'] = round(disk.total / (1024**3), 2)
+            try:
+                disk = psutil.disk_usage('C:\\')
+                stats['disk']['usage'] = disk.percent
+                stats['disk']['total'] = round(disk.total / (1024**3), 2)
+            except:
+                pass
 
         # --- GPU (NVIDIA) ---
         if nvml_handle:
@@ -104,13 +127,16 @@ def get_system_stats():
                 stats['gpu']['temp'] = pynvml.nvmlDeviceGetTemperature(nvml_handle, pynvml.NVML_TEMPERATURE_GPU)
                 
                 try:
-                    stats['gpu']['fan_speed'] = pynvml.nvmlDeviceGetFanSpeed(nvml_handle)
+                    # Try to get fan speed in %
+                    speed = pynvml.nvmlDeviceGetFanSpeed(nvml_handle)
+                    stats['gpu']['fan_speed'] = f"{speed}%"
                 except:
                     stats['gpu']['fan_speed'] = 'N/A'
 
             except Exception as e:
                 print(f"GPU Error: {e}")
-                init_gpu()
+                # Re-init might be needed if driver crashed
+                pass
 
     except Exception as e:
         print(f"Error gathering stats: {e}")
@@ -118,47 +144,32 @@ def get_system_stats():
     return stats
 
 def wake_screen():
-    """Wakes up the screen by simulating a mouse movement."""
+    """Wakes up the screen."""
     try:
-        # Move mouse slightly to wake screen
         ctypes.windll.user32.mouse_event(0x0001, 1, 1, 0, 0)
         time.sleep(0.1)
         ctypes.windll.user32.mouse_event(0x0001, -1, -1, 0, 0)
-        print("Screen wake signal sent.")
-    except Exception as e:
-        print(f"Error waking screen: {e}")
+    except:
+        pass
 
 def unlock_session():
-    """
-    On Windows, programmatically unlocking (typing password) is restricted for security.
-    This function will WAKE the screen.
-    To actually unlock, you would need to simulate keystrokes which is complex/insecure here.
-    For now, we treat 'unlock' as 'Wake Monitor'.
-    """
     print("Received Unlock Request - Waking Screen...")
     wake_screen()
     return True
 
 def execute_power_command(command):
-    """Executes system power commands for Windows."""
     try:
         if command == SHUTDOWN_COMMAND:
-            print("Executing Shutdown...")
             os.system("shutdown /s /t 0")
         elif command == REBOOT_COMMAND:
-            print("Executing Reboot...")
             os.system("shutdown /r /t 0")
         elif command == SUSPEND_COMMAND:
-            print("Executing Suspend...")
-            # Hibernate/Sleep requires admin or specific config, trying standard call
             os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
         return True
-    except Exception as e:
-        print(f"Error executing power command '{command}': {e}")
+    except:
         return False
 
 def decrypt_message(encrypted_data):
-    """Decrypts the message using AES (CBC mode)."""
     try:
         iv = encrypted_data[:16]
         ciphertext = encrypted_data[16:]
@@ -166,16 +177,14 @@ def decrypt_message(encrypted_data):
         decrypted_padded = cipher.decrypt(ciphertext)
         decrypted = unpad(decrypted_padded, AES.block_size)
         return decrypted.decode('utf-8')
-    except Exception as e:
-        print(f"Decryption error: {e}")
+    except:
         return None
 
 def main():
-    """Starts the socket server."""
     print("--- Windows Remote Control Server ---")
     print(f"Starting server on {HOST}:{PORT}")
     
-    init_gpu()
+    init_hardware()
     
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -190,35 +199,21 @@ def main():
                     data = conn.recv(1024)
                     if not data:
                         continue
-
                     message = decrypt_message(data)
-                    
                     if message:
                         if message == UNLOCK_COMMAND:
-                            if unlock_session():
-                                conn.sendall(b"Unlock command successful")
-                            else:
-                                conn.sendall(b"Unlock command failed")
-                        
+                            unlock_session()
+                            conn.sendall(b"Unlock command successful")
                         elif message == GET_STATS_COMMAND:
-                            try:
-                                stats = get_system_stats()
-                                response = json.dumps(stats).encode('utf-8')
-                                conn.sendall(response)
-                            except Exception as e:
-                                print(f"Error sending stats: {e}")
-                                conn.sendall(b"Error: Could not gather stats")
-                        
+                            stats = get_system_stats()
+                            conn.sendall(json.dumps(stats).encode('utf-8'))
                         elif message in [SHUTDOWN_COMMAND, REBOOT_COMMAND, SUSPEND_COMMAND]:
-                            if execute_power_command(message):
-                                conn.sendall(f"Command {message} executed".encode('utf-8'))
-                            else:
-                                conn.sendall(f"Command {message} failed".encode('utf-8'))
+                            execute_power_command(message)
+                            conn.sendall(f"Command {message} executed".encode('utf-8'))
                         else:
                             conn.sendall(b"Unknown command")
                     else:
                         conn.sendall(b"Error: Decryption failed")
-                
                 except Exception as e:
                     print(f"Connection Error: {e}")
 

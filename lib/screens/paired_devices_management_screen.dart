@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:encrypt/encrypt.dart' as encrypt;
 
+// --- Configuration ---
+const String DEFAULT_SECRET_KEY = 'S3J5cHRvR2VuZXJhdGVkS2V5MTIzNDU2Nzg5MDEyMzQ=';
+// --- End Configuration ---
+
 class PairedDevicesManagementScreen extends StatefulWidget {
   final List<Map<String, dynamic>> devices;
 
@@ -22,11 +26,6 @@ class _PairedDevicesManagementScreenState
   void initState() {
     super.initState();
     _devices = widget.devices;
-  }
-
-  String _generateRandomKey() {
-    final key = encrypt.Key.fromSecureRandom(32);
-    return key.base64;
   }
 
   void _saveDevice({
@@ -62,7 +61,7 @@ class _PairedDevicesManagementScreenState
     final nameController = TextEditingController(text: device?['name'] ?? '');
     final ipController = TextEditingController(text: device?['ip'] ?? '');
     final macController = TextEditingController(text: device?['mac'] ?? ''); // MAC controller
-    final keyController = TextEditingController(text: device?['secretKey'] ?? _generateRandomKey());
+    final keyController = TextEditingController(text: device?['secretKey'] ?? DEFAULT_SECRET_KEY);
     
     return showDialog<void>(
       context: context,
@@ -97,14 +96,9 @@ class _PairedDevicesManagementScreenState
                 const SizedBox(height: 16),
                 TextField(
                   controller: keyController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Secret Key (Base64)',
-                    icon: const Icon(Icons.vpn_key),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.refresh),
-                      tooltip: 'Generate New Key',
-                      onPressed: () => keyController.text = _generateRandomKey(),
-                    ),
+                    icon: Icon(Icons.vpn_key),
                   ),
                   maxLines: 2,
                   style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),

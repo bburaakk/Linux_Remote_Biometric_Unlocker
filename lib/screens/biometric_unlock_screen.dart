@@ -11,7 +11,7 @@ import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // --- Configuration ---
-const String SECRET_KEY_STRING = 'MTIzNDU2Nzg5MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTI=';
+const String SECRET_KEY_STRING = 'S3J5cHRvR2VuZXJhdGVkS2V5MTIzNDU2Nzg5MDEyMzQ=';
 const int SERVER_PORT = 12345;
 const String UNLOCK_COMMAND = "unlock";
 // --- End Configuration ---
