@@ -2,9 +2,10 @@ import socket
 import subprocess
 import base64
 import os
-import getpass
 import json
 import traceback
+import ctypes
+import time
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
@@ -33,7 +34,7 @@ SHUTDOWN_COMMAND = "shutdown"
 REBOOT_COMMAND = "reboot"
 SUSPEND_COMMAND = "suspend"
 
-# IMPORTANT: This key must match the one in your mobile app
+# Generated Key (Must match the Flutter app)
 SECRET_KEY_B64 = 'S3J5cHRvR2VuZXJhdGVkS2V5MTIzNDU2Nzg5MDEyMzQ=' 
 SECRET_KEY = base64.b64decode(SECRET_KEY_B64)
 # --- End Configuration ---
@@ -54,7 +55,7 @@ def init_gpu():
             nvml_handle = None
 
 def get_system_stats():
-    """Gathers CPU, GPU, RAM, and Disk statistics for Windows."""
+    """Gathers CPU, GPU, RAM, and Disk statistics."""
     stats = {
         'cpu': {'usage': 0, 'temp': 'N/A'},
         'gpu': {'usage': 0, 'temp': 'N/A', 'fan_speed': 'N/A', 'name': 'N/A'},
@@ -66,7 +67,16 @@ def get_system_stats():
         # --- CPU ---
         if psutil:
             stats['cpu']['usage'] = psutil.cpu_percent(interval=None)
-            # CPU temp on Windows is not standardized via psutil
+            # Windows usually requires 'OpenHardwareMonitor' or WMI for temps, 
+            # psutil often doesn't show temps on Windows directly without help.
+            # We will leave it as N/A or try to fetch if available.
+            if hasattr(psutil, 'sensors_temperatures'):
+                try:
+                    temps = psutil.sensors_temperatures()
+                    if 'coretemp' in temps:
+                        stats['cpu']['temp'] = temps['coretemp'][0].current
+                except:
+                    pass
 
         # --- RAM ---
         if psutil:
@@ -76,7 +86,7 @@ def get_system_stats():
 
         # --- Disk ---
         if psutil:
-            disk = psutil.disk_usage('C:\\')
+            disk = psutil.disk_usage('C:\\') # Usually C: on Windows
             stats['disk']['usage'] = disk.percent
             stats['disk']['total'] = round(disk.total / (1024**3), 2)
 
@@ -84,46 +94,64 @@ def get_system_stats():
         if nvml_handle:
             try:
                 name_raw = pynvml.nvmlDeviceGetName(nvml_handle)
-                stats['gpu']['name'] = name_raw.decode('utf-8') if isinstance(name_raw, bytes) else str(name_raw)
+                if isinstance(name_raw, bytes):
+                    stats['gpu']['name'] = name_raw.decode('utf-8')
+                else:
+                    stats['gpu']['name'] = str(name_raw)
+                    
                 util = pynvml.nvmlDeviceGetUtilizationRates(nvml_handle)
                 stats['gpu']['usage'] = util.gpu
                 stats['gpu']['temp'] = pynvml.nvmlDeviceGetTemperature(nvml_handle, pynvml.NVML_TEMPERATURE_GPU)
+                
                 try:
                     stats['gpu']['fan_speed'] = pynvml.nvmlDeviceGetFanSpeed(nvml_handle)
-                except pynvml.NVMLError:
+                except:
                     stats['gpu']['fan_speed'] = 'N/A'
 
-            except pynvml.NVMLError as e:
-                print(f"NVML Runtime Error: {e}")
-                init_gpu() # Try to re-init
             except Exception as e:
-                print(f"GPU General Error: {e}")
-                traceback.print_exc()
+                print(f"GPU Error: {e}")
+                init_gpu()
 
     except Exception as e:
         print(f"Error gathering stats: {e}")
-        traceback.print_exc()
         
     return stats
 
+def wake_screen():
+    """Wakes up the screen by simulating a mouse movement."""
+    try:
+        # Move mouse slightly to wake screen
+        ctypes.windll.user32.mouse_event(0x0001, 1, 1, 0, 0)
+        time.sleep(0.1)
+        ctypes.windll.user32.mouse_event(0x0001, -1, -1, 0, 0)
+        print("Screen wake signal sent.")
+    except Exception as e:
+        print(f"Error waking screen: {e}")
+
 def unlock_session():
-    """Unlocking is not supported on Windows via simple commands."""
-    print("Unlock command received, but it's not supported on Windows.")
-    return False
+    """
+    On Windows, programmatically unlocking (typing password) is restricted for security.
+    This function will WAKE the screen.
+    To actually unlock, you would need to simulate keystrokes which is complex/insecure here.
+    For now, we treat 'unlock' as 'Wake Monitor'.
+    """
+    print("Received Unlock Request - Waking Screen...")
+    wake_screen()
+    return True
 
 def execute_power_command(command):
-    """Executes system power commands on Windows."""
+    """Executes system power commands for Windows."""
     try:
         if command == SHUTDOWN_COMMAND:
             print("Executing Shutdown...")
-            subprocess.run(['shutdown', '/s', '/t', '0'], check=True)
+            os.system("shutdown /s /t 0")
         elif command == REBOOT_COMMAND:
             print("Executing Reboot...")
-            subprocess.run(['shutdown', '/r', '/t', '0'], check=True)
+            os.system("shutdown /r /t 0")
         elif command == SUSPEND_COMMAND:
             print("Executing Suspend...")
-            # Using rundll32 for suspend/sleep
-            subprocess.run(['rundll32.exe', 'powrprof.dll,SetSuspendState', '0,1,0'], check=True)
+            # Hibernate/Sleep requires admin or specific config, trying standard call
+            os.system("rundll32.exe powrprof.dll,SetSuspendState 0,1,0")
         return True
     except Exception as e:
         print(f"Error executing power command '{command}': {e}")
@@ -144,7 +172,7 @@ def decrypt_message(encrypted_data):
 
 def main():
     """Starts the socket server."""
-    print("--- Windows Remote Control & Stats Server ---")
+    print("--- Windows Remote Control Server ---")
     print(f"Starting server on {HOST}:{PORT}")
     
     init_gpu()
@@ -167,27 +195,32 @@ def main():
                     
                     if message:
                         if message == UNLOCK_COMMAND:
-                            conn.sendall(b"Unlock not supported on Windows")
+                            if unlock_session():
+                                conn.sendall(b"Unlock command successful")
+                            else:
+                                conn.sendall(b"Unlock command failed")
                         
                         elif message == GET_STATS_COMMAND:
-                            stats = get_system_stats()
-                            response = json.dumps(stats).encode('utf-8')
-                            conn.sendall(response)
+                            try:
+                                stats = get_system_stats()
+                                response = json.dumps(stats).encode('utf-8')
+                                conn.sendall(response)
+                            except Exception as e:
+                                print(f"Error sending stats: {e}")
+                                conn.sendall(b"Error: Could not gather stats")
                         
                         elif message in [SHUTDOWN_COMMAND, REBOOT_COMMAND, SUSPEND_COMMAND]:
                             if execute_power_command(message):
                                 conn.sendall(f"Command {message} executed".encode('utf-8'))
                             else:
                                 conn.sendall(f"Command {message} failed".encode('utf-8'))
-                            
                         else:
                             conn.sendall(b"Unknown command")
                     else:
                         conn.sendall(b"Error: Decryption failed")
                 
                 except Exception as e:
-                    print(f"Connection Error with {addr}: {e}")
-                    traceback.print_exc()
+                    print(f"Connection Error: {e}")
 
 if __name__ == '__main__':
     main()

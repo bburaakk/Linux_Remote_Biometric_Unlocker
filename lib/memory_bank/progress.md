@@ -17,8 +17,8 @@
 ## Phase 3: Feature Expansion (Current)
 - [x] **Power Management:** Implement Shutdown, Reboot, and Suspend controls.
 - [x] **Unlock Reliability:** Implement a `wake_screen` function to improve unlocking from a screen-off state.
+- [x] **Wake-on-LAN (WoL):** Add the ability to wake the computer from a powered-off state.
 - [ ] **Media Controls:** Add remote controls for media playback (Play/Pause, Volume).
-- [ ] **Wake-on-LAN (WoL):** Add the ability to wake the computer from a powered-off state.
 - [ ] **Application Launcher:** Add buttons to launch common applications remotely.
 
 ## Backlog / Future Ideas

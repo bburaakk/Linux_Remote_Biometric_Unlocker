@@ -28,14 +28,18 @@ To create a fast, secure, and convenient mobile application that acts as a remot
 3.  **Power Management:**
     *   Remote controls to **Shutdown**, **Reboot**, and **Suspend** the Linux machine, with confirmation dialogs.
 
-4.  **Multi-Device Management:**
+4.  **Wake-on-LAN (WoL):**
+    *   Wake up a sleeping or powered-off computer over the network by sending a "magic packet".
+    *   Requires the device's MAC address to be configured in the app.
+
+5.  **Multi-Device Management:**
     *   Add, save, and manage multiple Linux machines.
     *   Device list is persisted locally on the phone.
 
-5.  **Dynamic Security:**
+6.  **Dynamic Security:**
     *   Per-device, user-defined secret keys for AES encryption.
 
-6.  **Connection Logging:**
+7.  **Connection Logging:**
     *   An in-app log viewer shows the status of connections, authentication, and errors.
 
 ### Planned
@@ -43,8 +47,5 @@ To create a fast, secure, and convenient mobile application that acts as a remot
 1.  **Media Controls:**
     *   Remote controls for media playback (Play/Pause, Volume).
 
-2.  **Wake-on-LAN (WoL):**
-    *   Wake up a sleeping or powered-off computer over the network.
-
-3.  **Application Launcher:**
+2.  **Application Launcher:**
     *   Add buttons to launch common applications remotely.
